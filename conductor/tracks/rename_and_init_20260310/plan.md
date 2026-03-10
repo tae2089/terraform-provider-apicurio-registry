@@ -4,7 +4,7 @@
 - [x] Task: Update `go.mod` to the new module name. 86940cd
     - [ ] Write Tests
     - [ ] Implement Feature
-- [ ] Task: Update internal imports in all `.go` files.
+- [x] Task: Update internal imports in all `.go` files. 0573674
     - [ ] Write Tests
     - [ ] Implement Feature
 - [ ] Task: Update provider definition and meta files.
