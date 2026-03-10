@@ -1,0 +1,1 @@
+terraform import apicurio_example.test "id-123"
