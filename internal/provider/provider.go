@@ -43,9 +43,10 @@ func (p *ApicurioProvider) Metadata(ctx context.Context, req provider.MetadataRe
 
 func (p *ApicurioProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		MarkdownDescription: "The Apicurio Registry provider manages schemas and artifacts in Apicurio Registry.",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
+				MarkdownDescription: "The URL of the Apicurio Registry API endpoint. Defaults to `http://localhost:8080/apis/registry/v2`.",
 				Optional:            true,
 			},
 		},
