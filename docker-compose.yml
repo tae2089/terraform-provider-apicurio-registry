@@ -1,0 +1,9 @@
+version: "3.8"
+
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry-mem:2.4.4.Final
+    ports:
+      - "8080:8080"
+    environment:
+      QUARKUS_PROFILE: prod

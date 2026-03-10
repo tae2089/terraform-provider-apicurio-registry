@@ -62,10 +62,16 @@ func (p *ApicurioProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	endpoint := "http://localhost:8080/apis/registry/v2" // Default fallback
+	if !data.Endpoint.IsNull() && !data.Endpoint.IsUnknown() {
+		endpoint = data.Endpoint.ValueString()
+	}
 
 	// Example client configuration for data sources and resources
-	client := http.DefaultClient
+	client := &ApicurioClient{
+		HttpClient: http.DefaultClient,
+		Endpoint:   endpoint,
+	}
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
@@ -73,6 +79,8 @@ func (p *ApicurioProvider) Configure(ctx context.Context, req provider.Configure
 func (p *ApicurioProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewExampleResource,
+		NewArtifactResource,
+		NewArtifactRuleResource,
 	}
 }
 
