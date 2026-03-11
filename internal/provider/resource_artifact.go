@@ -47,7 +47,7 @@ type ArtifactResourceModel struct {
 	State      types.String `tfsdk:"state"`
 }
 
-// v3 API Structs
+// v3 API Structs.
 type CreateArtifactRequest struct {
 	ArtifactId   string                `json:"artifactId,omitempty"`
 	ArtifactType string                `json:"artifactType,omitempty"`
