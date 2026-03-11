@@ -48,7 +48,8 @@ func (p *ApicurioProvider) Metadata(ctx context.Context, req provider.MetadataRe
 
 func (p *ApicurioProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "The Apicurio Registry provider manages schemas and artifacts in Apicurio Registry.",
+		MarkdownDescription: "The **Apicurio** provider is used to interact with [Apicurio Registry](https://www.apicur.io/registry/), an open-source API and schema registry. It allows you to manage artifacts (schemas) and their validation/compatibility rules as Terraform resources.",
+
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
 				MarkdownDescription: "The URL of the Apicurio Registry API endpoint. Defaults to `http://localhost:8080/apis/registry/v2`. May also be provided via the `APICURIO_REGISTRY_URL` environment variable.",

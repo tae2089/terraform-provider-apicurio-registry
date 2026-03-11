@@ -9,11 +9,6 @@ description: |-
 
 Manages a rule applied to an artifact in [Apicurio Registry](https://www.apicur.io/registry/). Rules control schema validation and compatibility enforcement when new versions of an artifact are registered.
 
-Two rule types are supported:
-
-- **VALIDITY** — Validates that new artifact content is syntactically correct.
-- **COMPATIBILITY** — Ensures new versions are compatible with previous versions according to the configured strategy.
-
 ## Example Usage
 
 ### Backward Compatibility Rule

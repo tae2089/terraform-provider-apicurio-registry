@@ -1,0 +1,20 @@
+---
+# The Apicurio Provider
+page_title: "Apicurio Provider"
+description: |-
+  Manage and configure resources within an Apicurio Registry instance.
+---
+
+# Apicurio Provider
+
+{{ .Description }}
+
+## Authentication
+
+The provider connects directly to the Apicurio Registry REST API. Currently, authentication is handled via the endpoint URL. Future versions may support token-based authentication.
+
+## Example Usage
+
+{{tffile "examples/provider/provider.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

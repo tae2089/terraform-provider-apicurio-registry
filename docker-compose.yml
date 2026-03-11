@@ -9,29 +9,29 @@ services:
     image: apicurio/apicurio-registry:latest-snapshot
     container_name: apicurio-registry-api-inmemorywithauth
     environment:
-      # apicurio.rest.deletion.group.enabled: "true"
-      # apicurio.rest.deletion.artifact.enabled: "true"
-      # apicurio.rest.deletion.artifact-version.enabled: "true"
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
       # QUARKUS_OIDC_TENANT_ENABLED: "true"
       # QUARKUS_OIDC_AUTH_SERVER_URL: "http://localhost:8080/realms/apicurio"
       # QUARKUS_OIDC_CLIENT_ID: "apicurio-api"
       # QUARKUS_OIDC_TLS_VERIFICATION: "none"
-      # QUARKUS_HTTP_CORS_ORIGINS: "*"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
       # apicurio.auth.role-based-authorization: "true"
-      # QUARKUS_PROFILE: "prod"
+      QUARKUS_PROFILE: "prod"
       # apicurio.ui.auth.oidc.redirect-uri: "http://localhost:8888/"
       # APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
     ports:
       - "8080:8080"
 
-  apicurio-registry-ui:
-    image: apicurio/apicurio-registry-ui:latest-snapshot
-    container_name: apicurio-registry-ui-inmemorywithauth
-    environment:
-      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
-      # REGISTRY_AUTH_TYPE: "oidc"
-      # REGISTRY_AUTH_URL: "http://localhost:8080/realms/apicurio"
-    ports:
-      - "8888:8080"
-    depends_on:
-      - apicurio-registry
+  # apicurio-registry-ui:
+  #   image: apicurio/apicurio-registry-ui:latest-snapshot
+  #   container_name: apicurio-registry-ui-inmemorywithauth
+  #   environment:
+  #     REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
+  #     # REGISTRY_AUTH_TYPE: "oidc"
+  #     # REGISTRY_AUTH_URL: "http://localhost:8080/realms/apicurio"
+  #   ports:
+  #     - "8888:8080"
+  #   depends_on:
+  #     - apicurio-registry

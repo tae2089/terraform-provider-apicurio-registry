@@ -12,12 +12,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -88,18 +90,18 @@ func (r *ArtifactResource) Metadata(ctx context.Context, req resource.MetadataRe
 
 func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Apicurio Registry Artifact resource (v3)",
-
+		MarkdownDescription: "Manages an artifact in [Apicurio Registry](https://www.apicur.io/registry/). An artifact is a versioned schema or API definition such as Avro, JSON Schema, OpenAPI, AsyncAPI, and more.",
+		Description:         "Manages an artifact in [Apicurio Registry](https://www.apicur.io/registry/). An artifact is a versioned schema or API definition such as Avro, JSON Schema, OpenAPI, AsyncAPI, and more.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Resource ID (group_id/artifact_id)",
+				MarkdownDescription: "The resource ID in format `group_id/artifact_id`.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"group_id": schema.StringAttribute{
-				MarkdownDescription: "Artifact group ID",
+				MarkdownDescription: "The group ID that the artifact belongs to. Defaults to `default`.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("default"),
@@ -108,7 +110,7 @@ func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"artifact_id": schema.StringAttribute{
-				MarkdownDescription: "Artifact ID",
+				MarkdownDescription: "The unique identifier of the artifact within its group. If not specified, Apicurio Registry will auto-generate one.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -116,24 +118,27 @@ func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"content": schema.StringAttribute{
-				MarkdownDescription: "Artifact content",
+				MarkdownDescription: "The content of the artifact (schema definition). Must be a valid schema for the specified artifact type.",
 				Required:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Artifact type (e.g. AVRO, JSON, OPENAPI)",
+				MarkdownDescription: "The artifact type. Common values: `AVRO`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, `XML`. If not specified, the registry will attempt to auto-detect the type.",
 				Optional:            true,
 				Computed:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("AVRO", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"),
+				},
 			},
 			"version": schema.StringAttribute{
-				MarkdownDescription: "Artifact version",
+				MarkdownDescription: "The version of the artifact as assigned by the registry.",
 				Computed:            true,
 			},
 			"global_id": schema.Int64Attribute{
-				MarkdownDescription: "Global artifact ID",
+				MarkdownDescription: "The globally unique ID assigned to this artifact version by the registry.",
 				Computed:            true,
 			},
 			"state": schema.StringAttribute{
-				MarkdownDescription: "State of the latest version",
+				MarkdownDescription: "The current state of the artifact (e.g., `ENABLED`, `DISABLED`, `DEPRECATED`).",
 				Computed:            true,
 			},
 		},

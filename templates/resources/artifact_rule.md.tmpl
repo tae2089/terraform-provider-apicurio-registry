@@ -1,0 +1,63 @@
+---
+page_title: "apicurio_artifact_rule Resource - apicurio"
+subcategory: ""
+description: |-
+  Manages a validation or compatibility rule for an artifact in Apicurio Registry.
+---
+
+# apicurio_artifact_rule (Resource)
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+### Backward Compatibility Rule
+
+{{tffile "examples/resources/apicurio_artifact_rule/example_1.tf"}}
+
+### Full Compatibility Rule
+
+{{tffile "examples/resources/apicurio_artifact_rule/example_2.tf"}}
+
+### Syntax Validity Rule
+
+{{tffile "examples/resources/apicurio_artifact_rule/example_3.tf"}}
+
+### Combined with Artifact Resource
+
+{{tffile "examples/resources/apicurio_artifact_rule/example_4.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Compatibility Config Reference
+
+| Config | Description |
+|--------|-------------|
+| `BACKWARD` | New version can be used by consumers using the previous version |
+| `BACKWARD_TRANSITIVE` | New version is backward compatible with all previous versions |
+| `FORWARD` | Previous version can be used by consumers using the new version |
+| `FORWARD_TRANSITIVE` | Previous versions can be used by consumers using the new version |
+| `FULL` | Both backward and forward compatible with the previous version |
+| `FULL_TRANSITIVE` | Both backward and forward compatible with all previous versions |
+| `NONE` | No compatibility checking |
+
+## Validity Config Reference
+
+| Config | Description |
+|--------|-------------|
+| `SYNTAX_ONLY` | Only validate that the schema is syntactically correct |
+| `NONE` | No validity checking |
+
+## Import
+
+Artifact rules can be imported using the format `group_id/artifact_id/type`:
+
+```shell
+terraform import apicurio_artifact_rule.example "com.example/user-schema/COMPATIBILITY"
+```
+
+Import using the default group:
+
+```shell
+terraform import apicurio_artifact_rule.example "default/my-artifact/VALIDITY"
+```
