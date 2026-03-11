@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 version: "3.8"
 
 services:
@@ -6,16 +9,16 @@ services:
     image: apicurio/apicurio-registry:latest-snapshot
     container_name: apicurio-registry-api-inmemorywithauth
     environment:
-      apicurio.rest.deletion.group.enabled: "true"
-      apicurio.rest.deletion.artifact.enabled: "true"
-      apicurio.rest.deletion.artifact-version.enabled: "true"
-      QUARKUS_OIDC_TENANT_ENABLED: "true"
-      QUARKUS_OIDC_AUTH_SERVER_URL: "http://localhost:8080/realms/apicurio"
-      QUARKUS_OIDC_CLIENT_ID: "apicurio-registry-sa"
-      QUARKUS_OIDC_TLS_VERIFICATION: "none"
-      QUARKUS_HTTP_CORS_ORIGINS: "*"
-      apicurio.auth.role-based-authorization: "true"
-      QUARKUS_PROFILE: "prod"
+      # apicurio.rest.deletion.group.enabled: "true"
+      # apicurio.rest.deletion.artifact.enabled: "true"
+      # apicurio.rest.deletion.artifact-version.enabled: "true"
+      # QUARKUS_OIDC_TENANT_ENABLED: "true"
+      # QUARKUS_OIDC_AUTH_SERVER_URL: "http://localhost:8080/realms/apicurio"
+      # QUARKUS_OIDC_CLIENT_ID: "apicurio-api"
+      # QUARKUS_OIDC_TLS_VERIFICATION: "none"
+      # QUARKUS_HTTP_CORS_ORIGINS: "*"
+      # apicurio.auth.role-based-authorization: "true"
+      # QUARKUS_PROFILE: "prod"
       # apicurio.ui.auth.oidc.redirect-uri: "http://localhost:8888/"
       # APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
     ports:

@@ -14,7 +14,7 @@ resource "apicurio_artifact" "example_avro" {
   group_id    = "default2"
   artifact_id = "user-schema"
   type        = "AVRO"
-  content     = jsonencode({
+  content = jsonencode({
     type = "record"
     name = "User"
     fields = [
