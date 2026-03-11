@@ -16,3 +16,10 @@
 - [x] Register `NewArtifactRuleResource` in `provider.go`.
 - [x] Run Acceptance Tests to verify rule management with Docker Compose.
 - [x] Add example to `examples/resources/apicurio_artifact_rule/resource.tf`.
+
+# Tasks: Implement apicurio_artifact data source
+
+- [x] Create `internal/provider/data_source_artifact.go`.
+- [x] Register `NewArtifactDataSource` in `provider.go`.
+- [x] Create `internal/provider/data_source_artifact_test.go` and pass acceptance tests.
+- [x] Add example to `examples/data-sources/apicurio_artifact/data-source.tf`.

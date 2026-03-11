@@ -55,18 +55,18 @@ func (r *ArtifactRuleResource) Metadata(ctx context.Context, req resource.Metada
 
 func (r *ArtifactRuleResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a rule applied to an artifact in [Apicurio Registry](https://www.apicur.io/registry/). Rules control schema validation and compatibility enforcement when new versions of an artifact are registered.",
-		Description:         "Manages a rule applied to an artifact in [Apicurio Registry](https://www.apicur.io/registry/). Rules control schema validation and compatibility enforcement when new versions of an artifact are registered.",
+		MarkdownDescription: "The `apicurio_artifact_rule` resource allows you to manage rules applied to artifacts in the Apicurio Registry. Rules control content validation and compatibility enforcement.",
+
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The resource ID in format `group_id/artifact_id/type`.",
+				MarkdownDescription: "The composite identifier of the artifact rule, formatted as `group_id/artifact_id/type`.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"group_id": schema.StringAttribute{
-				MarkdownDescription: "The group ID of the artifact. Defaults to `default`.",
+				MarkdownDescription: "The ID of the artifact group. Defaults to `default` if not specified.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("default"),
@@ -75,14 +75,14 @@ func (r *ArtifactRuleResource) Schema(ctx context.Context, req resource.SchemaRe
 				},
 			},
 			"artifact_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the artifact to apply the rule to.",
+				MarkdownDescription: "The unique identifier of the artifact to which the rule applies.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The rule type. Must be one of: `COMPATIBILITY`, `VALIDITY`.",
+				MarkdownDescription: "The type of the rule. Valid values are `VALIDITY` and `COMPATIBILITY`.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -92,18 +92,13 @@ func (r *ArtifactRuleResource) Schema(ctx context.Context, req resource.SchemaRe
 				},
 			},
 			"config": schema.StringAttribute{
-				MarkdownDescription: "The rule configuration value. Valid values depend on the rule `type`:\n  - For `COMPATIBILITY`: `BACKWARD`, `BACKWARD_TRANSITIVE`, `FORWARD`, `FORWARD_TRANSITIVE`, `FULL`, `FULL_TRANSITIVE`, `NONE`\n  - For `VALIDITY`: `SYNTAX_ONLY`, `NONE`",
-				Required:            true,
+				MarkdownDescription: "The configuration value for the rule. Valid values depend on the rule `type`:\n" +
+					"  - For `COMPATIBILITY`: `BACKWARD`, `BACKWARD_TRANSITIVE`, `FORWARD`, `FORWARD_TRANSITIVE`, `FULL`, `FULL_TRANSITIVE`, `NONE`\n" +
+					"  - For `VALIDITY`: `FULL`, `SYNTAX_ONLY`, `NONE`",
+				Required: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(
-						// COMPATIBILITY values
-						"BACKWARD", "BACKWARD_TRANSITIVE",
-						"FORWARD", "FORWARD_TRANSITIVE",
-						"FULL", "FULL_TRANSITIVE",
-						// Shared
-						"NONE",
-						// VALIDITY values
-						"SYNTAX_ONLY",
+						"BACKWARD", "BACKWARD_TRANSITIVE", "FORWARD", "FORWARD_TRANSITIVE", "FULL", "FULL_TRANSITIVE", "NONE", "SYNTAX_ONLY",
 					),
 				},
 			},

@@ -47,61 +47,24 @@ type ArtifactResourceModel struct {
 	State      types.String `tfsdk:"state"`
 }
 
-// v3 API Structs.
-type CreateArtifactRequest struct {
-	ArtifactId   string                `json:"artifactId,omitempty"`
-	ArtifactType string                `json:"artifactType,omitempty"`
-	FirstVersion *CreateVersionRequest `json:"firstVersion,omitempty"`
-}
-
-type CreateVersionRequest struct {
-	Version string           `json:"version,omitempty"`
-	Content *ArtifactContent `json:"content"`
-}
-
-type CreateVersionResponse struct {
-	Version  string `json:"version"`
-	GlobalId int64  `json:"globalId"`
-	State    string `json:"state"`
-}
-
-type ArtifactContent struct {
-	Content     string `json:"content"`
-	ContentType string `json:"contentType"`
-}
-
-type ArtifactMetaData struct {
-	ArtifactId   string `json:"artifactId"`
-	Id           string `json:"id"`
-	GroupId      string `json:"groupId"`
-	ArtifactType string `json:"artifactType"`
-	Type         string `json:"type"`
-}
-
-type VersionMetaData struct {
-	Version  string `json:"version"`
-	GlobalId int64  `json:"globalId"`
-	State    string `json:"state"`
-}
-
 func (r *ArtifactResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_artifact"
 }
 
 func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages an artifact in [Apicurio Registry](https://www.apicur.io/registry/). An artifact is a versioned schema or API definition such as Avro, JSON Schema, OpenAPI, AsyncAPI, and more.",
-		Description:         "Manages an artifact in [Apicurio Registry](https://www.apicur.io/registry/). An artifact is a versioned schema or API definition such as Avro, JSON Schema, OpenAPI, AsyncAPI, and more.",
+		MarkdownDescription: "The `apicurio_artifact` resource allows you to create and manage artifacts within the Apicurio Registry. An artifact is a versioned schema or API definition.",
+
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The resource ID in format `group_id/artifact_id`.",
+				MarkdownDescription: "The composite ID of the artifact, formatted as `group_id/artifact_id`.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"group_id": schema.StringAttribute{
-				MarkdownDescription: "The group ID that the artifact belongs to. Defaults to `default`.",
+				MarkdownDescription: "The ID of the artifact group. Defaults to `default` if not specified.",
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("default"),
@@ -118,11 +81,11 @@ func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"content": schema.StringAttribute{
-				MarkdownDescription: "The content of the artifact (schema definition). Must be a valid schema for the specified artifact type.",
+				MarkdownDescription: "The actual content of the artifact (e.g., the JSON or YAML of a schema or API definition).",
 				Required:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The artifact type. Common values: `AVRO`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, `XML`. If not specified, the registry will attempt to auto-detect the type.",
+				MarkdownDescription: "The type of the artifact (e.g., `AVRO`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, `XML`). If not specified, the registry will attempt to auto-detect the type.",
 				Optional:            true,
 				Computed:            true,
 				Validators: []validator.String{
@@ -130,7 +93,7 @@ func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"version": schema.StringAttribute{
-				MarkdownDescription: "The version of the artifact as assigned by the registry.",
+				MarkdownDescription: "The version number of the created artifact version.",
 				Computed:            true,
 			},
 			"global_id": schema.Int64Attribute{
@@ -138,7 +101,7 @@ func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaReques
 				Computed:            true,
 			},
 			"state": schema.StringAttribute{
-				MarkdownDescription: "The current state of the artifact (e.g., `ENABLED`, `DISABLED`, `DEPRECATED`).",
+				MarkdownDescription: "The state of the created artifact version (e.g., `ENABLED`, `DISABLED`, `DEPRECATED`).",
 				Computed:            true,
 			},
 		},

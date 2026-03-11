@@ -10,3 +10,4 @@
 - [2026년  3월 10일 화요일 21시 23분 54초 KST] Added example HCL in `examples/resources/apicurio_artifact/resource.tf`.
 - [2026년  3월 10일 화요일 21시 44분 00초 KST] Started implementation of `apicurio_artifact_rule` resource based on Apicurio Registry v2 API.
 - [2026년  3월 10일 화요일 21시 47분 09초 KST] Successfully implemented `apicurio_artifact_rule` resource. Checked Create/Read/Update/Delete operations and verified integration with Apicurio Registry via Acceptance Tests.
+- [2026년  3월 11일 수요일 20시 21분 16초 KST] Successfully implemented `apicurio_artifact` data source. Verified with acceptance tests against Apicurio Registry v3.

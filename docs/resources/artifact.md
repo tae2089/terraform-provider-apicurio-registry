@@ -8,7 +8,7 @@ description: |-
 
 # apicurio_artifact (Resource)
 
-Manages an artifact in [Apicurio Registry](https://www.apicur.io/registry/). An artifact is a versioned schema or API definition such as Avro, JSON Schema, OpenAPI, AsyncAPI, and more.
+The `apicurio_artifact` resource allows you to create and manage artifacts within the Apicurio Registry. An artifact is a versioned schema or API definition.
 
 ## Example Usage
 
@@ -94,20 +94,20 @@ EOT
 
 ### Required
 
-- `content` (String) The content of the artifact (schema definition). Must be a valid schema for the specified artifact type.
+- `content` (String) The actual content of the artifact (e.g., the JSON or YAML of a schema or API definition).
 
 ### Optional
 
 - `artifact_id` (String) The unique identifier of the artifact within its group. If not specified, Apicurio Registry will auto-generate one.
-- `group_id` (String) The group ID that the artifact belongs to. Defaults to `default`.
-- `type` (String) The artifact type. Common values: `AVRO`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, `XML`. If not specified, the registry will attempt to auto-detect the type.
+- `group_id` (String) The ID of the artifact group. Defaults to `default` if not specified.
+- `type` (String) The type of the artifact (e.g., `AVRO`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, `XML`). If not specified, the registry will attempt to auto-detect the type.
 
 ### Read-Only
 
 - `global_id` (Number) The globally unique ID assigned to this artifact version by the registry.
-- `id` (String) The resource ID in format `group_id/artifact_id`.
-- `state` (String) The current state of the artifact (e.g., `ENABLED`, `DISABLED`, `DEPRECATED`).
-- `version` (String) The version of the artifact as assigned by the registry.
+- `id` (String) The composite ID of the artifact, formatted as `group_id/artifact_id`.
+- `state` (String) The state of the created artifact version (e.g., `ENABLED`, `DISABLED`, `DEPRECATED`).
+- `version` (String) The version number of the created artifact version.
 
 ## Import
 
