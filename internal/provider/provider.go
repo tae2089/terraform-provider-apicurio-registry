@@ -95,22 +95,22 @@ func (p *ApicurioProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	// Keycloak Configuration
-	kcUrl := os.Getenv("KEYCLOAK_SERVER_URL")
+	kcUrl := os.Getenv("APICURIO_KEYCLOAK_SERVER_URL")
 	if !data.KeycloakServerUrl.IsNull() && !data.KeycloakServerUrl.IsUnknown() {
 		kcUrl = data.KeycloakServerUrl.ValueString()
 	}
 
-	kcRealm := os.Getenv("KEYCLOAK_REALM")
+	kcRealm := os.Getenv("APICURIO_KEYCLOAK_REALM")
 	if !data.KeycloakRealm.IsNull() && !data.KeycloakRealm.IsUnknown() {
 		kcRealm = data.KeycloakRealm.ValueString()
 	}
 
-	kcClientId := os.Getenv("KEYCLOAK_CLIENT_ID")
+	kcClientId := os.Getenv("APICURIO_KEYCLOAK_CLIENT_ID")
 	if !data.KeycloakClientId.IsNull() && !data.KeycloakClientId.IsUnknown() {
 		kcClientId = data.KeycloakClientId.ValueString()
 	}
 
-	kcClientSecret := os.Getenv("KEYCLOAK_CLIENT_SECRET")
+	kcClientSecret := os.Getenv("APICURIO_KEYCLOAK_CLIENT_SECRET")
 	if !data.KeycloakClientSecret.IsNull() && !data.KeycloakClientSecret.IsUnknown() {
 		kcClientSecret = data.KeycloakClientSecret.ValueString()
 	}
