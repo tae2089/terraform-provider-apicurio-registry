@@ -30,7 +30,7 @@ provider "apicurio" {
 
 ### Optional
 
-- `endpoint` (String) The URL of the Apicurio Registry API endpoint. Defaults to `http://localhost:8080/apis/registry/v2`. May also be provided via the `APICURIO_REGISTRY_URL` environment variable.
+- `endpoint` (String) The URL of the Apicurio Registry API endpoint. Defaults to `http://localhost:8080/apis/registry/v3`. May also be provided via the `APICURIO_REGISTRY_URL` environment variable.
 - `keycloak_client_id` (String) Keycloak client ID.
 - `keycloak_client_secret` (String, Sensitive) Keycloak client secret.
 - `keycloak_realm` (String) Keycloak realm name.

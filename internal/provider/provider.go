@@ -52,7 +52,7 @@ func (p *ApicurioProvider) Schema(ctx context.Context, req provider.SchemaReques
 
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "The URL of the Apicurio Registry API endpoint. Defaults to `http://localhost:8080/apis/registry/v2`. May also be provided via the `APICURIO_REGISTRY_URL` environment variable.",
+				MarkdownDescription: "The URL of the Apicurio Registry API endpoint. Defaults to `http://localhost:8080/apis/registry/v3`. May also be provided via the `APICURIO_REGISTRY_URL` environment variable.",
 				Optional:            true,
 			},
 			"keycloak_server_url": schema.StringAttribute{
