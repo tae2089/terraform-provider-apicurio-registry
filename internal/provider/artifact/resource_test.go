@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package artifact
+package artifact_test
 
 import (
 	providertesting "github.com/tae2089/terraform-provider-apicurio-registry/internal/testing"
