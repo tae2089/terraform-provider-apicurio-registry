@@ -7,7 +7,7 @@ description: |-
 
 # apicurio_artifact_rule (Resource)
 
-Manages a rule applied to an artifact in [Apicurio Registry](https://www.apicur.io/registry/). Rules control schema validation and compatibility enforcement when new versions of an artifact are registered.
+The `apicurio_artifact_rule` resource allows you to manage rules applied to artifacts in the Apicurio Registry. Rules control content validation and compatibility enforcement.
 
 ## Example Usage
 
@@ -74,19 +74,19 @@ resource "apicurio_artifact_rule" "payment_validity" {
 
 ### Required
 
-- `artifact_id` (String) The ID of the artifact to apply the rule to.
-- `config` (String) The rule configuration value. Valid values depend on the rule `type`:
+- `artifact_id` (String) The unique identifier of the artifact to which the rule applies.
+- `config` (String) The configuration value for the rule. Valid values depend on the rule `type`:
   - For `COMPATIBILITY`: `BACKWARD`, `BACKWARD_TRANSITIVE`, `FORWARD`, `FORWARD_TRANSITIVE`, `FULL`, `FULL_TRANSITIVE`, `NONE`
-  - For `VALIDITY`: `SYNTAX_ONLY`, `NONE`
-- `type` (String) The rule type. Must be one of: `COMPATIBILITY`, `VALIDITY`.
+  - For `VALIDITY`: `FULL`, `SYNTAX_ONLY`, `NONE`
+- `type` (String) The type of the rule. Valid values are `VALIDITY` and `COMPATIBILITY`.
 
 ### Optional
 
-- `group_id` (String) The group ID of the artifact. Defaults to `default`.
+- `group_id` (String) The ID of the artifact group. Defaults to `default` if not specified.
 
 ### Read-Only
 
-- `id` (String) The resource ID in format `group_id/artifact_id/type`.
+- `id` (String) The composite identifier of the artifact rule, formatted as `group_id/artifact_id/type`.
 
 ## Compatibility Config Reference
 
