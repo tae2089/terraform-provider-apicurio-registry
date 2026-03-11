@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -44,13 +45,41 @@ type ArtifactResourceModel struct {
 	State      types.String `tfsdk:"state"`
 }
 
-type ArtifactMetaData struct {
-	Id       string `json:"id"`
-	GroupId  string `json:"groupId"`
-	Type     string `json:"type"`
+// v3 API Structs
+type CreateArtifactRequest struct {
+	ArtifactId   string                `json:"artifactId,omitempty"`
+	ArtifactType string                `json:"artifactType,omitempty"`
+	FirstVersion *CreateVersionRequest `json:"firstVersion,omitempty"`
+}
+
+type CreateVersionRequest struct {
+	Version string           `json:"version,omitempty"`
+	Content *ArtifactContent `json:"content"`
+}
+
+type CreateVersionResponse struct {
 	Version  string `json:"version"`
-	State    string `json:"state"`
 	GlobalId int64  `json:"globalId"`
+	State    string `json:"state"`
+}
+
+type ArtifactContent struct {
+	Content     string `json:"content"`
+	ContentType string `json:"contentType"`
+}
+
+type ArtifactMetaData struct {
+	ArtifactId   string `json:"artifactId"`
+	Id           string `json:"id"`
+	GroupId      string `json:"groupId"`
+	ArtifactType string `json:"artifactType"`
+	Type         string `json:"type"`
+}
+
+type VersionMetaData struct {
+	Version  string `json:"version"`
+	GlobalId int64  `json:"globalId"`
+	State    string `json:"state"`
 }
 
 func (r *ArtifactResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -59,7 +88,7 @@ func (r *ArtifactResource) Metadata(ctx context.Context, req resource.MetadataRe
 
 func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Apicurio Registry Artifact resource",
+		MarkdownDescription: "Apicurio Registry Artifact resource (v3)",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -74,13 +103,16 @@ func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaReques
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString("default"),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"artifact_id": schema.StringAttribute{
 				MarkdownDescription: "Artifact ID",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"content": schema.StringAttribute{
@@ -101,7 +133,7 @@ func (r *ArtifactResource) Schema(ctx context.Context, req resource.SchemaReques
 				Computed:            true,
 			},
 			"state": schema.StringAttribute{
-				MarkdownDescription: "State of the artifact",
+				MarkdownDescription: "State of the latest version",
 				Computed:            true,
 			},
 		},
@@ -132,20 +164,41 @@ func (r *ArtifactResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	url := fmt.Sprintf("%s/groups/%s/artifacts", r.client.Endpoint, data.GroupId.ValueString())
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(data.Content.ValueString()))
+	groupId := data.GroupId.ValueString()
+	if groupId == "" {
+		groupId = "default"
+	}
+
+	// Construct v3 CreateArtifactRequest
+	createReq := CreateArtifactRequest{
+		FirstVersion: &CreateVersionRequest{
+			Content: &ArtifactContent{
+				Content:     data.Content.ValueString(),
+				ContentType: "application/json",
+			},
+		},
+	}
+
+	if !data.ArtifactId.IsNull() && !data.ArtifactId.IsUnknown() {
+		createReq.ArtifactId = data.ArtifactId.ValueString()
+	}
+	if !data.Type.IsNull() && !data.Type.IsUnknown() {
+		createReq.ArtifactType = data.Type.ValueString()
+	}
+
+	url := fmt.Sprintf("%s/groups/%s/artifacts", r.client.Endpoint, groupId)
+	payload, err := json.Marshal(createReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to marshal request, got error: %s", err))
+		return
+	}
+
+	httpReq, err := r.client.NewRequest(ctx, "POST", url, bytes.NewReader(payload))
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create request, got error: %s", err))
 		return
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
-	if !data.ArtifactId.IsNull() && !data.ArtifactId.IsUnknown() {
-		httpReq.Header.Set("X-Registry-ArtifactId", data.ArtifactId.ValueString())
-	}
-	if !data.Type.IsNull() && !data.Type.IsUnknown() {
-		httpReq.Header.Set("X-Registry-ArtifactType", data.Type.ValueString())
-	}
 
 	httpResp, err := r.client.HttpClient.Do(httpReq)
 	if err != nil {
@@ -160,26 +213,61 @@ func (r *ArtifactResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+	// v3 Create Artifact response returns ArtifactMetaData
 	var meta ArtifactMetaData
 	if err := json.NewDecoder(httpResp.Body).Decode(&meta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode artifact metadata, got error: %s", err))
 		return
 	}
 
-	groupId := meta.GroupId
-	if groupId == "" {
-		groupId = data.GroupId.ValueString()
+	// Fallback for ID
+	artifactId := meta.ArtifactId
+	if artifactId == "" {
+		artifactId = meta.Id
+	}
+	if artifactId == "" {
+		artifactId = data.ArtifactId.ValueString()
 	}
 
-	data.ArtifactId = types.StringValue(meta.Id)
-	data.GroupId = types.StringValue(groupId)
-	data.Type = types.StringValue(meta.Type)
-	data.Version = types.StringValue(meta.Version)
-	data.GlobalId = types.Int64Value(meta.GlobalId)
-	data.State = types.StringValue(meta.State)
-	data.Id = types.StringValue(fmt.Sprintf("%s/%s", groupId, meta.Id))
+	// Fallback for Type
+	artifactType := meta.ArtifactType
+	if artifactType == "" {
+		artifactType = meta.Type
+	}
+	if artifactType == "" {
+		artifactType = data.Type.ValueString()
+	}
 
-	tflog.Trace(ctx, "created an artifact resource")
+	// Fetch latest version metadata to get version/globalId/state
+	vMetaUrl := fmt.Sprintf("%s/groups/%s/artifacts/%s/versions/branch=latest", r.client.Endpoint, groupId, artifactId)
+	vMetaReq, _ := r.client.NewRequest(ctx, "GET", vMetaUrl, nil)
+	vMetaResp, err := r.client.HttpClient.Do(vMetaReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to fetch latest version metadata: %s", err))
+		return
+	}
+	defer vMetaResp.Body.Close()
+
+	if vMetaResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(vMetaResp.Body)
+		resp.Diagnostics.AddError("API Error", fmt.Sprintf("Unable to read latest version metadata after creation, got status: %d, body: %s", vMetaResp.StatusCode, body))
+		return
+	}
+
+	var vMeta VersionMetaData
+	if err := json.NewDecoder(vMetaResp.Body).Decode(&vMeta); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode version metadata: %s", err))
+		return
+	}
+
+	data.Version = types.StringValue(vMeta.Version)
+	data.GlobalId = types.Int64Value(vMeta.GlobalId)
+	data.State = types.StringValue(vMeta.State)
+	data.ArtifactId = types.StringValue(artifactId)
+	data.GroupId = types.StringValue(groupId)
+	data.Type = types.StringValue(artifactType)
+	data.Id = types.StringValue(fmt.Sprintf("%s/%s", groupId, artifactId))
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -190,9 +278,35 @@ func (r *ArtifactResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	// Read metadata
-	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/meta", r.client.Endpoint, data.GroupId.ValueString(), data.ArtifactId.ValueString())
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	groupId := data.GroupId.ValueString()
+	artifactId := data.ArtifactId.ValueString()
+
+	// Robust fallback parsing from data.Id (format: groupId/artifactId)
+	if groupId == "" || artifactId == "" {
+		parts := strings.Split(data.Id.ValueString(), "/")
+		if len(parts) == 2 {
+			if groupId == "" {
+				groupId = parts[0]
+			}
+			if artifactId == "" {
+				artifactId = parts[1]
+			}
+		}
+	}
+
+	if groupId == "" {
+		groupId = "default"
+	}
+
+	if artifactId == "" {
+		tflog.Warn(ctx, "Artifact ID is missing or empty in state, removing resource from state", map[string]any{"id": data.Id.ValueString()})
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	// 1. Read Artifact Metadata
+	url := fmt.Sprintf("%s/groups/%s/artifacts/%s", r.client.Endpoint, groupId, artifactId)
+	httpReq, err := r.client.NewRequest(ctx, "GET", url, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create request, got error: %s", err))
 		return
@@ -222,19 +336,47 @@ func (r *ArtifactResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	groupId := meta.GroupId
-	if groupId == "" {
-		groupId = data.GroupId.ValueString()
+	// Sync back ID from server metadata if possible
+	if meta.ArtifactId != "" {
+		artifactId = meta.ArtifactId
+	} else if meta.Id != "" {
+		artifactId = meta.Id
 	}
 
-	// Read content
-	contentUrl := fmt.Sprintf("%s/groups/%s/artifacts/%s/versions/%s", r.client.Endpoint, groupId, meta.Id, meta.Version)
-	contentReq, err := http.NewRequestWithContext(ctx, "GET", contentUrl, nil)
+	// Fallback for Type
+	artifactType := meta.ArtifactType
+	if artifactType == "" {
+		artifactType = meta.Type
+	}
+	if artifactType == "" {
+		artifactType = data.Type.ValueString()
+	}
+
+	// 2. Read Latest Version Metadata
+	vMetaUrl := fmt.Sprintf("%s/groups/%s/artifacts/%s/versions/branch=latest", r.client.Endpoint, groupId, artifactId)
+	vMetaReq, _ := r.client.NewRequest(ctx, "GET", vMetaUrl, nil)
+	vMetaResp, err := r.client.HttpClient.Do(vMetaReq)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create content request, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read latest version metadata, got error: %s", err))
+		return
+	}
+	defer vMetaResp.Body.Close()
+
+	if vMetaResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(vMetaResp.Body)
+		resp.Diagnostics.AddError("API Error", fmt.Sprintf("Unable to read latest version metadata, got status: %d, body: %s", vMetaResp.StatusCode, body))
 		return
 	}
 
+	var vMeta VersionMetaData
+	if err := json.NewDecoder(vMetaResp.Body).Decode(&vMeta); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode version metadata, got error: %s", err))
+		return
+	}
+
+	// 3. Read Content (latest version)
+	contentUrl := fmt.Sprintf("%s/groups/%s/artifacts/%s/versions/branch=latest/content", r.client.Endpoint, groupId, artifactId)
+	contentReq, _ := r.client.NewRequest(ctx, "GET", contentUrl, nil)
 	contentResp, err := r.client.HttpClient.Do(contentReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read artifact content, got error: %s", err))
@@ -254,14 +396,14 @@ func (r *ArtifactResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	data.ArtifactId = types.StringValue(meta.Id)
+	data.ArtifactId = types.StringValue(artifactId)
 	data.GroupId = types.StringValue(groupId)
-	data.Type = types.StringValue(meta.Type)
-	data.Version = types.StringValue(meta.Version)
-	data.GlobalId = types.Int64Value(meta.GlobalId)
-	data.State = types.StringValue(meta.State)
+	data.Type = types.StringValue(artifactType)
+	data.Version = types.StringValue(vMeta.Version)
+	data.GlobalId = types.Int64Value(vMeta.GlobalId)
+	data.State = types.StringValue(vMeta.State)
 	data.Content = types.StringValue(string(content))
-	data.Id = types.StringValue(fmt.Sprintf("%s/%s", groupId, meta.Id))
+	data.Id = types.StringValue(fmt.Sprintf("%s/%s", groupId, artifactId))
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -273,13 +415,27 @@ func (r *ArtifactResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	url := fmt.Sprintf("%s/groups/%s/artifacts/%s", r.client.Endpoint, data.GroupId.ValueString(), data.ArtifactId.ValueString())
-	httpReq, err := http.NewRequestWithContext(ctx, "PUT", url, strings.NewReader(data.Content.ValueString()))
+	groupId := data.GroupId.ValueString()
+	if groupId == "" {
+		groupId = "default"
+	}
+
+	// v3 Update means adding a new version: POST /groups/{groupId}/artifacts/{artifactId}/versions
+	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/versions", r.client.Endpoint, groupId, data.ArtifactId.ValueString())
+
+	versionReq := CreateVersionRequest{
+		Content: &ArtifactContent{
+			Content:     data.Content.ValueString(),
+			ContentType: "application/json",
+		},
+	}
+	payload, _ := json.Marshal(versionReq)
+
+	httpReq, err := r.client.NewRequest(ctx, "POST", url, bytes.NewReader(payload))
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create update request, got error: %s", err))
 		return
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	httpResp, err := r.client.HttpClient.Do(httpReq)
@@ -289,21 +445,21 @@ func (r *ArtifactResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 	defer httpResp.Body.Close()
 
-	if httpResp.StatusCode != http.StatusOK {
+	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResp.Body)
-		resp.Diagnostics.AddError("API Error", fmt.Sprintf("Unable to update artifact, got status: %d, body: %s", httpResp.StatusCode, body))
+		resp.Diagnostics.AddError("API Error", fmt.Sprintf("Unable to update artifact (create version), got status: %d, body: %s", httpResp.StatusCode, body))
 		return
 	}
 
-	var meta ArtifactMetaData
-	if err := json.NewDecoder(httpResp.Body).Decode(&meta); err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode artifact metadata, got error: %s", err))
+	var vMeta CreateVersionResponse
+	if err := json.NewDecoder(httpResp.Body).Decode(&vMeta); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode version metadata, got error: %s", err))
 		return
 	}
 
-	data.Version = types.StringValue(meta.Version)
-	data.GlobalId = types.Int64Value(meta.GlobalId)
-	data.State = types.StringValue(meta.State)
+	data.Version = types.StringValue(vMeta.Version)
+	data.GlobalId = types.Int64Value(vMeta.GlobalId)
+	data.State = types.StringValue(vMeta.State)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -315,8 +471,14 @@ func (r *ArtifactResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	url := fmt.Sprintf("%s/groups/%s/artifacts/%s", r.client.Endpoint, data.GroupId.ValueString(), data.ArtifactId.ValueString())
-	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	groupId := data.GroupId.ValueString()
+	if groupId == "" {
+		groupId = "default"
+	}
+
+	// v3 Delete Artifact: DELETE /groups/{groupId}/artifacts/{artifactId}
+	url := fmt.Sprintf("%s/groups/%s/artifacts/%s", r.client.Endpoint, groupId, data.ArtifactId.ValueString())
+	httpReq, err := r.client.NewRequest(ctx, "DELETE", url, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create delete request, got error: %s", err))
 		return

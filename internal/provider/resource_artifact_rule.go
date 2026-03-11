@@ -45,8 +45,8 @@ type ArtifactRuleResourceModel struct {
 }
 
 type RulePayload struct {
-	Type   string `json:"type,omitempty"`
-	Config string `json:"config"`
+	RuleType string `json:"ruleType,omitempty"`
+	Config   string `json:"config"`
 }
 
 func (r *ArtifactRuleResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -62,7 +62,7 @@ func (r *ArtifactRuleResource) Schema(ctx context.Context, req resource.SchemaRe
 				Computed:            true,
 				MarkdownDescription: "Resource ID (group_id/artifact_id/type)",
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"group_id": schema.StringAttribute{
@@ -88,7 +88,7 @@ func (r *ArtifactRuleResource) Schema(ctx context.Context, req resource.SchemaRe
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.OneOf("COMPATIBILITY", "VALIDITY"),
+					stringvalidator.OneOf("VALIDITY", "COMPATIBILITY", "INTEGRITY"),
 				},
 			},
 			"config": schema.StringAttribute{
@@ -140,11 +140,12 @@ func (r *ArtifactRuleResource) Create(ctx context.Context, req resource.CreateRe
 		groupId = "default"
 	}
 
+	// v3 Artifact Rule Create: POST /groups/{groupId}/artifacts/{artifactId}/rules
 	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/rules", r.client.Endpoint, groupId, data.ArtifactId.ValueString())
 
 	payload := RulePayload{
-		Type:   data.Type.ValueString(),
-		Config: data.Config.ValueString(),
+		RuleType: data.Type.ValueString(),
+		Config:   data.Config.ValueString(),
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -152,12 +153,11 @@ func (r *ArtifactRuleResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payloadBytes))
+	httpReq, err := r.client.NewRequest(ctx, "POST", url, bytes.NewReader(payloadBytes))
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create request, got error: %s", err))
 		return
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	httpResp, err := r.client.HttpClient.Do(httpReq)
@@ -167,7 +167,7 @@ func (r *ArtifactRuleResource) Create(ctx context.Context, req resource.CreateRe
 	}
 	defer httpResp.Body.Close()
 
-	if httpResp.StatusCode != http.StatusNoContent && httpResp.StatusCode != http.StatusOK {
+	if httpResp.StatusCode != http.StatusNoContent && httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(httpResp.Body)
 		resp.Diagnostics.AddError("API Error", fmt.Sprintf("Unable to create artifact rule, got status: %d, body: %s", httpResp.StatusCode, body))
 		return
@@ -175,7 +175,6 @@ func (r *ArtifactRuleResource) Create(ctx context.Context, req resource.CreateRe
 
 	data.Id = types.StringValue(fmt.Sprintf("%s/%s/%s", groupId, data.ArtifactId.ValueString(), data.Type.ValueString()))
 
-	tflog.Trace(ctx, "created an artifact rule resource")
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -191,8 +190,31 @@ func (r *ArtifactRuleResource) Read(ctx context.Context, req resource.ReadReques
 		groupId = "default"
 	}
 
-	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/rules/%s", r.client.Endpoint, groupId, data.ArtifactId.ValueString(), data.Type.ValueString())
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	artifactId := data.ArtifactId.ValueString()
+	ruleType := data.Type.ValueString()
+
+	if artifactId == "" || ruleType == "" {
+		// Try to extract from ID if fields are empty
+		parts := strings.Split(data.Id.ValueString(), "/")
+		if len(parts) == 3 {
+			if artifactId == "" {
+				artifactId = parts[1]
+			}
+			if ruleType == "" {
+				ruleType = parts[2]
+			}
+		}
+	}
+
+	if artifactId == "" || ruleType == "" {
+		tflog.Warn(ctx, "Artifact ID or Rule Type is missing in state, removing resource from state", map[string]any{"id": data.Id.ValueString()})
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	// v3 Artifact Rule Read: GET /groups/{groupId}/artifacts/{artifactId}/rules/{ruleType}
+	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/rules/%s", r.client.Endpoint, groupId, artifactId, ruleType)
+	httpReq, err := r.client.NewRequest(ctx, "GET", url, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create request, got error: %s", err))
 		return
@@ -223,7 +245,7 @@ func (r *ArtifactRuleResource) Read(ctx context.Context, req resource.ReadReques
 	}
 
 	data.Config = types.StringValue(ruleResp.Config)
-	data.Id = types.StringValue(fmt.Sprintf("%s/%s/%s", groupId, data.ArtifactId.ValueString(), data.Type.ValueString()))
+	data.Id = types.StringValue(fmt.Sprintf("%s/%s/%s", groupId, artifactId, ruleType))
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
@@ -240,6 +262,7 @@ func (r *ArtifactRuleResource) Update(ctx context.Context, req resource.UpdateRe
 		groupId = "default"
 	}
 
+	// v3 Artifact Rule Update: PUT /groups/{groupId}/artifacts/{artifactId}/rules/{ruleType}
 	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/rules/%s", r.client.Endpoint, groupId, data.ArtifactId.ValueString(), data.Type.ValueString())
 
 	payload := RulePayload{
@@ -251,12 +274,11 @@ func (r *ArtifactRuleResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewReader(payloadBytes))
+	httpReq, err := r.client.NewRequest(ctx, "PUT", url, bytes.NewReader(payloadBytes))
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create update request, got error: %s", err))
 		return
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	httpResp, err := r.client.HttpClient.Do(httpReq)
@@ -288,8 +310,9 @@ func (r *ArtifactRuleResource) Delete(ctx context.Context, req resource.DeleteRe
 		groupId = "default"
 	}
 
+	// v3 Artifact Rule Delete: DELETE /groups/{groupId}/artifacts/{artifactId}/rules/{ruleType}
 	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/rules/%s", r.client.Endpoint, groupId, data.ArtifactId.ValueString(), data.Type.ValueString())
-	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	httpReq, err := r.client.NewRequest(ctx, "DELETE", url, nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create delete request, got error: %s", err))
 		return
