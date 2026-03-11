@@ -1,9 +1,10 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package provider
+package artifact_rule
 
 import (
+	providertesting "github.com/tae2089/terraform-provider-apicurio-registry/internal/testing"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -11,8 +12,8 @@ import (
 
 func TestAccArtifactRuleDataSource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck:                 func() { providertesting.TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: providertesting.TestAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccArtifactRuleDataSourceConfig("ds-rule-artifact", "VALIDITY", "FULL"),

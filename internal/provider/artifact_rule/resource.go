@@ -1,13 +1,14 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package provider
+package artifact_rule
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/tae2089/terraform-provider-apicurio-registry/internal/client"
 	"io"
 	"net/http"
 	"strings"
@@ -33,7 +34,7 @@ func NewArtifactRuleResource() resource.Resource {
 }
 
 type ArtifactRuleResource struct {
-	client *ApicurioClient
+	client *client.ApicurioClient
 }
 
 type ArtifactRuleResourceModel struct {
@@ -42,11 +43,6 @@ type ArtifactRuleResourceModel struct {
 	ArtifactId types.String `tfsdk:"artifact_id"`
 	Type       types.String `tfsdk:"type"`
 	Config     types.String `tfsdk:"config"`
-}
-
-type RulePayload struct {
-	RuleType string `json:"ruleType,omitempty"`
-	Config   string `json:"config"`
 }
 
 func (r *ArtifactRuleResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -111,11 +107,11 @@ func (r *ArtifactRuleResource) Configure(ctx context.Context, req resource.Confi
 		return
 	}
 
-	client, ok := req.ProviderData.(*ApicurioClient)
+	client, ok := req.ProviderData.(*client.ApicurioClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *ApicurioClient, got: %T.", req.ProviderData),
+			fmt.Sprintf("Expected *client.ApicurioClient, got: %T.", req.ProviderData),
 		)
 		return
 	}
@@ -138,7 +134,7 @@ func (r *ArtifactRuleResource) Create(ctx context.Context, req resource.CreateRe
 	// v3 Artifact Rule Create: POST /groups/{groupId}/artifacts/{artifactId}/rules
 	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/rules", r.client.Endpoint, groupId, data.ArtifactId.ValueString())
 
-	payload := RulePayload{
+	payload := client.RulePayload{
 		RuleType: data.Type.ValueString(),
 		Config:   data.Config.ValueString(),
 	}
@@ -233,7 +229,7 @@ func (r *ArtifactRuleResource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
-	var ruleResp RulePayload
+	var ruleResp client.RulePayload
 	if err := json.NewDecoder(httpResp.Body).Decode(&ruleResp); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode artifact rule, got error: %s", err))
 		return
@@ -260,7 +256,7 @@ func (r *ArtifactRuleResource) Update(ctx context.Context, req resource.UpdateRe
 	// v3 Artifact Rule Update: PUT /groups/{groupId}/artifacts/{artifactId}/rules/{ruleType}
 	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/rules/%s", r.client.Endpoint, groupId, data.ArtifactId.ValueString(), data.Type.ValueString())
 
-	payload := RulePayload{
+	payload := client.RulePayload{
 		Config: data.Config.ValueString(),
 	}
 	payloadBytes, err := json.Marshal(payload)

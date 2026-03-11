@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package provider
+package client
 
 import (
 	"context"
@@ -64,4 +64,9 @@ type VersionMetaData struct {
 	Version  string `json:"version"`
 	GlobalId int64  `json:"globalId"`
 	State    string `json:"state"`
+}
+
+type RulePayload struct {
+	RuleType string `json:"ruleType,omitempty"`
+	Config   string `json:"config"`
 }

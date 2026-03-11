@@ -1,12 +1,13 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package provider
+package artifact
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/tae2089/terraform-provider-apicurio-registry/internal/client"
 	"io"
 	"net/http"
 
@@ -23,7 +24,7 @@ func NewArtifactDataSource() datasource.DataSource {
 }
 
 type ArtifactDataSource struct {
-	client *ApicurioClient
+	client *client.ApicurioClient
 }
 
 type ArtifactDataSourceModel struct {
@@ -88,11 +89,11 @@ func (d *ArtifactDataSource) Configure(ctx context.Context, req datasource.Confi
 		return
 	}
 
-	client, ok := req.ProviderData.(*ApicurioClient)
+	client, ok := req.ProviderData.(*client.ApicurioClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *ApicurioClient, got: %T.", req.ProviderData),
+			fmt.Sprintf("Expected *client.ApicurioClient, got: %T.", req.ProviderData),
 		)
 		return
 	}
@@ -134,7 +135,7 @@ func (d *ArtifactDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	var meta ArtifactMetaData
+	var meta client.ArtifactMetaData
 	if err := json.NewDecoder(httpResp.Body).Decode(&meta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode artifact metadata, got error: %s", err))
 		return
@@ -156,7 +157,7 @@ func (d *ArtifactDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	var vMeta VersionMetaData
+	var vMeta client.VersionMetaData
 	if err := json.NewDecoder(vMetaResp.Body).Decode(&vMeta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode version metadata, got error: %s", err))
 		return

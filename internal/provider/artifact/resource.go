@@ -1,13 +1,14 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package provider
+package artifact
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/tae2089/terraform-provider-apicurio-registry/internal/client"
 	"io"
 	"net/http"
 	"strings"
@@ -33,7 +34,7 @@ func NewArtifactResource() resource.Resource {
 }
 
 type ArtifactResource struct {
-	client *ApicurioClient
+	client *client.ApicurioClient
 }
 
 type ArtifactResourceModel struct {
@@ -113,11 +114,11 @@ func (r *ArtifactResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(*ApicurioClient)
+	client, ok := req.ProviderData.(*client.ApicurioClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *ApicurioClient, got: %T.", req.ProviderData),
+			fmt.Sprintf("Expected *client.ApicurioClient, got: %T.", req.ProviderData),
 		)
 		return
 	}
@@ -137,10 +138,10 @@ func (r *ArtifactResource) Create(ctx context.Context, req resource.CreateReques
 		groupId = "default"
 	}
 
-	// Construct v3 CreateArtifactRequest
-	createReq := CreateArtifactRequest{
-		FirstVersion: &CreateVersionRequest{
-			Content: &ArtifactContent{
+	// Construct v3 client.CreateArtifactRequest
+	createReq := client.CreateArtifactRequest{
+		FirstVersion: &client.CreateVersionRequest{
+			Content: &client.ArtifactContent{
 				Content:     data.Content.ValueString(),
 				ContentType: "application/json",
 			},
@@ -181,8 +182,8 @@ func (r *ArtifactResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// v3 Create Artifact response returns ArtifactMetaData
-	var meta ArtifactMetaData
+	// v3 Create Artifact response returns client.ArtifactMetaData
+	var meta client.ArtifactMetaData
 	if err := json.NewDecoder(httpResp.Body).Decode(&meta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode artifact metadata, got error: %s", err))
 		return
@@ -222,7 +223,7 @@ func (r *ArtifactResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	var vMeta VersionMetaData
+	var vMeta client.VersionMetaData
 	if err := json.NewDecoder(vMetaResp.Body).Decode(&vMeta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode version metadata: %s", err))
 		return
@@ -298,7 +299,7 @@ func (r *ArtifactResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	var meta ArtifactMetaData
+	var meta client.ArtifactMetaData
 	if err := json.NewDecoder(httpResp.Body).Decode(&meta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode artifact metadata, got error: %s", err))
 		return
@@ -336,7 +337,7 @@ func (r *ArtifactResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	var vMeta VersionMetaData
+	var vMeta client.VersionMetaData
 	if err := json.NewDecoder(vMetaResp.Body).Decode(&vMeta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode version metadata, got error: %s", err))
 		return
@@ -391,8 +392,8 @@ func (r *ArtifactResource) Update(ctx context.Context, req resource.UpdateReques
 	// v3 Update means adding a new version: POST /groups/{groupId}/artifacts/{artifactId}/versions
 	url := fmt.Sprintf("%s/groups/%s/artifacts/%s/versions", r.client.Endpoint, groupId, data.ArtifactId.ValueString())
 
-	versionReq := CreateVersionRequest{
-		Content: &ArtifactContent{
+	versionReq := client.CreateVersionRequest{
+		Content: &client.ArtifactContent{
 			Content:     data.Content.ValueString(),
 			ContentType: "application/json",
 		},
@@ -419,7 +420,7 @@ func (r *ArtifactResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	var vMeta CreateVersionResponse
+	var vMeta client.CreateVersionResponse
 	if err := json.NewDecoder(httpResp.Body).Decode(&vMeta); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode version metadata, got error: %s", err))
 		return

@@ -7,6 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/tae2089/terraform-provider-apicurio-registry/internal/client"
+	"github.com/tae2089/terraform-provider-apicurio-registry/internal/provider/artifact"
+	"github.com/tae2089/terraform-provider-apicurio-registry/internal/provider/artifact_rule"
 	"io"
 	"net/http"
 	"net/url"
@@ -158,7 +161,7 @@ func (p *ApicurioProvider) Configure(ctx context.Context, req provider.Configure
 	}
 
 	// Example client configuration for data sources and resources
-	client := &ApicurioClient{
+	client := &client.ApicurioClient{
 		HttpClient: http.DefaultClient,
 		Endpoint:   endpoint,
 		Token:      accessToken,
@@ -169,15 +172,15 @@ func (p *ApicurioProvider) Configure(ctx context.Context, req provider.Configure
 
 func (p *ApicurioProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewArtifactResource,
-		NewArtifactRuleResource,
+		artifact.NewArtifactResource,
+		artifact_rule.NewArtifactRuleResource,
 	}
 }
 
 func (p *ApicurioProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewArtifactDataSource,
-		NewArtifactRuleDataSource,
+		artifact.NewArtifactDataSource,
+		artifact_rule.NewArtifactRuleDataSource,
 	}
 }
 

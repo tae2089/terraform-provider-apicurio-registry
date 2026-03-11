@@ -1,12 +1,13 @@
 // Copyright IBM Corp. 2021, 2025
 // SPDX-License-Identifier: MPL-2.0
 
-package provider
+package artifact_rule
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/tae2089/terraform-provider-apicurio-registry/internal/client"
 	"io"
 	"net/http"
 
@@ -23,7 +24,7 @@ func NewArtifactRuleDataSource() datasource.DataSource {
 }
 
 type ArtifactRuleDataSource struct {
-	client *ApicurioClient
+	client *client.ApicurioClient
 }
 
 type ArtifactRuleDataSourceModel struct {
@@ -75,11 +76,11 @@ func (d *ArtifactRuleDataSource) Configure(ctx context.Context, req datasource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*ApicurioClient)
+	client, ok := req.ProviderData.(*client.ApicurioClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *ApicurioClient, got: %T.", req.ProviderData),
+			fmt.Sprintf("Expected *client.ApicurioClient, got: %T.", req.ProviderData),
 		)
 		return
 	}
@@ -122,7 +123,7 @@ func (d *ArtifactRuleDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	var ruleResp RulePayload
+	var ruleResp client.RulePayload
 	if err := json.NewDecoder(httpResp.Body).Decode(&ruleResp); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to decode artifact rule, got error: %s", err))
 		return
